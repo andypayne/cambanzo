@@ -8,10 +8,11 @@ import os
 import shutil
 import subprocess
 import threading
-from time import sleep
+import time
 import configparser
 import math
 import tkinter
+import requests
 from PIL import Image, ImageTk
 
 
@@ -70,7 +71,7 @@ def kill_after(secs, proc):
     """
     Kill proc after sleeping
     """
-    sleep(secs)
+    time.sleep(secs)
     proc.kill()
 
 def run_for(secs, cmd):
@@ -89,6 +90,26 @@ def run_for(secs, cmd):
         line = proc.stdout.readline()
     th.join()
     return out
+
+def timestamp_str(ts=-1):
+    """
+    Return a unix epoch ms timestamp as a string
+    """
+    ts = time.time() if ts == -1 else ts
+    return str(int(1000 * ts))
+
+def download_image(url, user, pwd, name):
+    """
+    Download an image with digest auth (for Amcrest camera access)
+    """
+    res = requests.get(url, auth=requests.auth.HTTPDigestAuth(user, pwd))
+    print(f"download status: {res.status_code}")
+    if res.status_code != 200:
+        print("Error in download_image")
+        return -1
+    with open(name, 'wb') as wrt:
+        wrt.write(res.content)
+    return 0
 
 def display_image(img_path):
     """
@@ -216,6 +237,14 @@ def main():
     print(f"cam_paths = {cam_paths}")
     img_paths = matching_files_in([path + '/images' for path in cam_paths], r'\.jpg$')
     print(f"img_paths = {img_paths}")
+    # Amcrest
+    img_filename = os.path.abspath('.') + '/amcr_' + timestamp_str() + '.jpg'
+    download_image(config['Amcrest']['StillUrl'],
+                   config['Amcrest']['User'],
+                   config['Amcrest']['Pass'],
+                   img_filename)
+    img_paths.append(img_filename)
+    print(f"Amcrest img: {img_filename}")
     max_num_imgs = 9
     obj_det_imgs = run_obj_dets(img_paths[:max_num_imgs])
     #show_images(img_paths[:max_num_imgs])
