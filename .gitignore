@@ -1,0 +1,7 @@
+config.ini
+_temp/
+\.DS_Store
+\.vscode/
+*.pyc
+*.bin
+*.log
