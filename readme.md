@@ -30,8 +30,15 @@ cp _config.json config.json
 
 ## Amcrest camera access
 
-[Amcrest cameras](https://amcrest.com/ip-cameras.html) support streaming video. After enabling, for a camera with ip `192.168.1.1`, this is the rtsp
-stream url for the default channel: `rtsp://192.168.1.1/cam/realmonitor?channel=1&subtype=0`.
+[Amcrest cameras](https://amcrest.com/ip-cameras.html) support streaming video and still images. Today Cambanzo uses still images. To enable, set the `StillUrl`, `User`, and `Pass` fields in the config file. Examples:
+
+```config
+StillUrl = http://192.168.1.1/cgi-bin/snapshot.cgi?channel=1
+User = user
+Pass = pass
+```
+
+Also, RTSP stream access may be enabled for Amcrest cameras, though this is not yet used by Cambanzo. For a camera with ip `192.168.1.1`, this is the rtsp stream url for the default channel: `rtsp://192.168.1.1/cam/realmonitor?channel=1&subtype=0`.
 
 
 ## Wyze
