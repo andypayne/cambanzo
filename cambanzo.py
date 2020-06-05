@@ -186,7 +186,7 @@ def run_obj_det(img_path):
     """
     Run darknet YOLO on an image file
     """
-    with chdir('../darknet/'):
+    with chdir(config['DEFAULT']['DarknetPath']):
         print('object detection cmd:')
         darknet_cmd = config['DEFAULT']['DarknetCmd'].format(config['DEFAULT']['YoloCfg'],
                                                              config['DEFAULT']['YoloWeights'],
@@ -204,7 +204,7 @@ def run_obj_dets(img_paths):
     """
     out_img_paths = []
     od_dets = []
-    with chdir('../darknet/'):
+    with chdir(config['DEFAULT']['DarknetPath']):
         for img_path in img_paths:
             img_path_basename = basename_no_ext(img_path)
             out_img_path = ''.join([config['DEFAULT']['DispImgFilepath'],
@@ -223,7 +223,7 @@ def run_obj_dets(img_paths):
             det_re = r'\[DETECTED\] (\w+): (\d+)%'
             od_dets_run = re.findall(det_re, od_res.stdout.decode('utf-8'))
             od_dets.append(od_dets_run)
-            out_img_paths.append(out_img_path + '.jpg')
+            out_img_paths.append(config['DEFAULT']['DarknetPath'] + '/' + out_img_path + '.jpg')
     return od_dets, out_img_paths
 
 def main():
@@ -245,7 +245,7 @@ def main():
     img_paths = matching_files_in([path + '/images' for path in cam_paths], r'\.jpg$')
     print(f"img_paths = {img_paths}")
     # Amcrest
-    img_filename = os.path.abspath(config['DEFAULT']['OutDir']) + 'amcr_' + timestamp_str() + '.jpg'
+    img_filename = os.path.abspath(config['DEFAULT']['OutDir']) + '/amcr_' + timestamp_str() + '.jpg'
     download_image(config['Amcrest']['StillUrl'],
                    config['Amcrest']['User'],
                    config['Amcrest']['Pass'],
