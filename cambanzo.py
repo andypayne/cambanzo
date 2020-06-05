@@ -167,15 +167,6 @@ def show_images(img_paths):
                          image=img_tk)
     root.mainloop()
 
-def run_foggycam(fc_script):
-    """
-    Run foggycam2
-    """
-    fc_cmd = 'python {}'.format(fc_script)
-    print('foggycam2 command: {}'.format(fc_cmd))
-    fc_res = subprocess.check_output(fc_cmd, shell=True)
-    print('foggycam2 result: {}'.format(fc_res))
-
 def get_camera_ids(path):
     """
     Get the camera ids from foggycam2's captures.
@@ -228,7 +219,7 @@ def run_obj_dets(img_paths):
 
 def main():
     """
-    It is stupid that a docstring for main is required by this linter.
+    I'm just here to make linters happy
     """
     args = sys.argv[1:]
     if len(args) == 1 and (args[0] == '-h' or args[0] == '--help'):
@@ -239,12 +230,13 @@ def main():
     fc_runtime_secs = int(config['DEFAULT']['DefFoggycamRuntimeSecs'])
     fc_res = run_for(fc_runtime_secs, ["python", config['DEFAULT']['FoggycamCmd']])
     print("foggycam2 response: {}".format(fc_res))
-    #cam_ids = get_camera_ids('../foggycam2/src/capture')
-    cam_paths = matching_files_in(['../foggycam2/src/capture'], r'^[A-Fa-f0-9]{32}$')
+    #cam_ids = get_camera_ids(config['DEFAULT']['FoggycamCapPath'])
+    cam_paths = matching_files_in([config['DEFAULT']['FoggycamCapPath']], r'^[A-Fa-f0-9]{32}$')
     print(f"cam_paths = {cam_paths}")
     img_paths = matching_files_in([path + '/images' for path in cam_paths], r'\.jpg$')
     print(f"img_paths = {img_paths}")
     # Amcrest
+    # pylint: disable=line-too-long
     img_filename = os.path.abspath(config['DEFAULT']['OutDir']) + '/amcr_' + timestamp_str() + '.jpg'
     download_image(config['Amcrest']['StillUrl'],
                    config['Amcrest']['User'],
