@@ -194,7 +194,8 @@ def run_obj_det(img_path):
                                                              config['DEFAULT']['OutImgFilepathPre'],
                                                              config['DEFAULT']['DarknetDataCfg'])
         print(darknet_cmd)
-        od_res = subprocess.check_output(darknet_cmd, shell=True)
+        od_res = subprocess.run(darknet_cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, shell=True, check=True)
     return od_res
 
 def run_obj_dets(img_paths):
@@ -202,6 +203,7 @@ def run_obj_dets(img_paths):
     Run darknet YOLO on multiple image files
     """
     out_img_paths = []
+    od_dets = []
     with chdir('../darknet/'):
         for img_path in img_paths:
             img_path_basename = basename_no_ext(img_path)
@@ -216,8 +218,13 @@ def run_obj_dets(img_paths):
                                                   out_img_path,
                                                   config['DEFAULT']['DarknetDataCfg']),
             subprocess.check_output(darknet_cmd, shell=True)
+            od_res = subprocess.run(darknet_cmd, stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT, shell=True, check=True)
+            det_re = r'\[DETECTED\] (\w+): (\d+)%'
+            od_dets_run = re.findall(det_re, od_res.stdout.decode('utf-8'))
+            od_dets.append(od_dets_run)
             out_img_paths.append(out_img_path + '.jpg')
-    return out_img_paths
+    return od_dets, out_img_paths
 
 def main():
     """
@@ -238,7 +245,7 @@ def main():
     img_paths = matching_files_in([path + '/images' for path in cam_paths], r'\.jpg$')
     print(f"img_paths = {img_paths}")
     # Amcrest
-    img_filename = os.path.abspath('.') + '/amcr_' + timestamp_str() + '.jpg'
+    img_filename = os.path.abspath(config['DEFAULT']['OutDir']) + 'amcr_' + timestamp_str() + '.jpg'
     download_image(config['Amcrest']['StillUrl'],
                    config['Amcrest']['User'],
                    config['Amcrest']['Pass'],
@@ -246,7 +253,8 @@ def main():
     img_paths.append(img_filename)
     print(f"Amcrest img: {img_filename}")
     max_num_imgs = 9
-    obj_det_imgs = run_obj_dets(img_paths[:max_num_imgs])
+    obj_dets, obj_det_imgs = run_obj_dets(img_paths[:max_num_imgs])
+    print(f"DETECTIONS: {obj_dets}")
     #show_images(img_paths[:max_num_imgs])
     show_images(obj_det_imgs[:max_num_imgs])
 
