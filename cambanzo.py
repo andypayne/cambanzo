@@ -195,13 +195,13 @@ def run_obj_det(img_path):
     """
     Run darknet YOLO on an image file
     """
-    with chdir(config['DEFAULT']['DarknetPath']):
+    with chdir(config['Darknet']['Path']):
         print('object detection cmd:')
-        darknet_cmd = config['DEFAULT']['DarknetCmd'].format(config['DEFAULT']['YoloCfg'],
-                                                             config['DEFAULT']['YoloWeights'],
-                                                             img_path,
-                                                             config['DEFAULT']['OutImgFilepathPre'],
-                                                             config['DEFAULT']['DarknetDataCfg'])
+        darknet_cmd = config['Darknet']['Cmd'].format(config['Darknet']['YoloCfg'],
+                                                      config['Darknet']['YoloWeights'],
+                                                      img_path,
+                                                      config['Darknet']['OutImgFilepathPre'],
+                                                      config['Darknet']['DataCfg'])
         print(darknet_cmd)
         od_res = subprocess.run(darknet_cmd, stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT, shell=True, check=True)
@@ -213,31 +213,31 @@ def run_obj_dets(img_paths):
     """
     out_img_paths = []
     od_dets = []
-    with chdir(config['DEFAULT']['DarknetPath']):
+    with chdir(config['Darknet']['Path']):
         for img_path in img_paths:
             img_path_basename = basename_no_ext(img_path)
             out_img_path = ''.join([config['DEFAULT']['DispImgFilepath'],
-                                    config['DEFAULT']['OutImgFilepathPre'],
+                                    config['Darknet']['OutImgFilepathPre'],
                                     '_',
                                     img_path_basename])
-            darknet_cmd_tmpl = config['DEFAULT']['DarknetCmd']
-            darknet_cmd = darknet_cmd_tmpl.format(config['DEFAULT']['YoloCfg'],
-                                                  config['DEFAULT']['YoloWeights'],
+            darknet_cmd_tmpl = config['Darknet']['Cmd']
+            darknet_cmd = darknet_cmd_tmpl.format(config['Darknet']['YoloCfg'],
+                                                  config['Darknet']['YoloWeights'],
                                                   img_path,
                                                   out_img_path,
-                                                  config['DEFAULT']['DarknetDataCfg']),
+                                                  config['Darknet']['DataCfg']),
             subprocess.check_output(darknet_cmd, shell=True)
             od_res = subprocess.run(darknet_cmd, stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT, shell=True, check=True)
             det_re = r'\[DETECTED\] (\w+): (\d+)%'
             od_dets_run = re.findall(det_re, od_res.stdout.decode('utf-8'))
             od_dets.append(od_dets_run)
-            out_img_paths.append(config['DEFAULT']['DarknetPath'] + '/' + out_img_path + '.jpg')
+            out_img_paths.append(config['Darknet']['Path'] + '/' + out_img_path + '.jpg')
     return od_dets, out_img_paths
 
 def main():
     """
-    I'm just here to make linters happy
+    Most mechanical
     """
     args = sys.argv[1:]
     if len(args) == 1 and (args[0] == '-h' or args[0] == '--help'):
@@ -245,21 +245,21 @@ def main():
         sys.exit(1)
     config_file = args[0] if len(args) == 1 else 'config.ini'
     config.read(config_file)
-    fc_runtime_secs = int(config['DEFAULT']['DefFoggycamRuntimeSecs'])
-    fc_res = run_for(fc_runtime_secs, ["python", config['DEFAULT']['FoggycamCmd']])
+    fc_runtime_secs = int(config['Foggycam']['DefRuntimeSecs'])
+    fc_res = run_for(fc_runtime_secs, ["python", config['Foggycam']['Cmd']])
     print("foggycam2 response: {}".format(fc_res))
-    #cam_ids = get_camera_ids(config['DEFAULT']['FoggycamCapPath'])
-    cam_paths = matching_files_in([config['DEFAULT']['FoggycamCapPath']], r'^[A-Fa-f0-9]{32}$')
+    #cam_ids = get_camera_ids(config['Foggycam']['CapPath'])
+    cam_paths = matching_files_in([config['Foggycam']['CapPath']], r'^[A-Fa-f0-9]{32}$')
     print(f"cam_paths = {cam_paths}")
     img_paths = matching_files_in([path + '/images' for path in cam_paths], r'\.jpg$')
-    # Amcrest
-    # pylint: disable=line-too-long
-    img_filename = os.path.join(os.path.abspath(config['DEFAULT']['OutDir']), 'amcr_' + timestamp_str() + '.jpg')
-    download_image(config['Amcrest']['StillUrl'],
-                   config['Amcrest']['User'],
-                   config['Amcrest']['Pass'],
-                   img_filename)
-    img_paths.append(img_filename)
+    if config['Amcrest']['Enabled']:
+        # pylint: disable=line-too-long
+        img_filename = os.path.join(os.path.abspath(config['DEFAULT']['OutDir']), 'amcr_' + timestamp_str() + '.jpg')
+        download_image(config['Amcrest']['StillUrl'],
+                       config['Amcrest']['User'],
+                       config['Amcrest']['Pass'],
+                       img_filename)
+        img_paths.append(img_filename)
     print(f"Amcrest img: {img_filename}")
     max_num_imgs = 9
     obj_dets, obj_det_imgs = run_obj_dets(img_paths[:max_num_imgs])
