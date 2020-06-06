@@ -41,6 +41,24 @@ def copy_files(files, to_dir):
     for mfile in files:
         shutil.copy(mfile, to_dir)
 
+def move_files(files, to_dir):
+    """
+    Move files to a directory, creating the directory if it doesn't exist.
+    """
+    os.makedirs(to_dir, exist_ok=True)
+    for mfile in files:
+        new_mfile = os.path.join(to_dir, os.path.basename(mfile))
+        shutil.move(mfile, new_mfile)
+
+def archive_files(files, to_base):
+    """
+    Archive a list of files/directories to a base location, creating a new dir
+    with a timestamp name.
+    """
+    ts_dir = os.path.join(to_base, timestamp_str())
+    os.makedirs(ts_dir, exist_ok=True)
+    move_files(files, ts_dir)
+
 # pylint: disable=invalid-name
 class chdir:
     """
@@ -234,10 +252,9 @@ def main():
     cam_paths = matching_files_in([config['DEFAULT']['FoggycamCapPath']], r'^[A-Fa-f0-9]{32}$')
     print(f"cam_paths = {cam_paths}")
     img_paths = matching_files_in([path + '/images' for path in cam_paths], r'\.jpg$')
-    print(f"img_paths = {img_paths}")
     # Amcrest
     # pylint: disable=line-too-long
-    img_filename = os.path.abspath(config['DEFAULT']['OutDir']) + '/amcr_' + timestamp_str() + '.jpg'
+    img_filename = os.path.join(os.path.abspath(config['DEFAULT']['OutDir']), 'amcr_' + timestamp_str() + '.jpg')
     download_image(config['Amcrest']['StillUrl'],
                    config['Amcrest']['User'],
                    config['Amcrest']['Pass'],
@@ -247,6 +264,7 @@ def main():
     max_num_imgs = 9
     obj_dets, obj_det_imgs = run_obj_dets(img_paths[:max_num_imgs])
     print(f"DETECTIONS: {obj_dets}")
+    archive_files(img_paths, config['DEFAULT']['OutDir'])
     #show_images(img_paths[:max_num_imgs])
     show_images(obj_det_imgs[:max_num_imgs])
 
