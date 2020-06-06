@@ -245,13 +245,15 @@ def main():
         sys.exit(1)
     config_file = args[0] if len(args) == 1 else 'config.ini'
     config.read(config_file)
-    fc_runtime_secs = int(config['Foggycam']['DefRuntimeSecs'])
-    fc_res = run_for(fc_runtime_secs, ["python", config['Foggycam']['Cmd']])
-    print("foggycam2 response: {}".format(fc_res))
-    #cam_ids = get_camera_ids(config['Foggycam']['CapPath'])
-    cam_paths = matching_files_in([config['Foggycam']['CapPath']], r'^[A-Fa-f0-9]{32}$')
-    print(f"cam_paths = {cam_paths}")
-    img_paths = matching_files_in([path + '/images' for path in cam_paths], r'\.jpg$')
+    img_paths = []
+    if config['Foggycam']['Enabled']:
+        fc_runtime_secs = int(config['Foggycam']['DefRuntimeSecs'])
+        fc_res = run_for(fc_runtime_secs, ["python", config['Foggycam']['Cmd']])
+        print("foggycam2 response: {}".format(fc_res))
+        #cam_ids = get_camera_ids(config['Foggycam']['CapPath'])
+        cam_paths = matching_files_in([config['Foggycam']['CapPath']], r'^[A-Fa-f0-9]{32}$')
+        print(f"cam_paths = {cam_paths}")
+        img_paths.extend(matching_files_in([path + '/images' for path in cam_paths], r'\.jpg$'))
     if config['Amcrest']['Enabled']:
         # pylint: disable=line-too-long
         img_filename = os.path.join(os.path.abspath(config['DEFAULT']['OutDir']), 'amcr_' + timestamp_str() + '.jpg')
@@ -260,13 +262,17 @@ def main():
                        config['Amcrest']['Pass'],
                        img_filename)
         img_paths.append(img_filename)
-    print(f"Amcrest img: {img_filename}")
+        print(f"Amcrest img: {img_filename}")
     max_num_imgs = 9
-    obj_dets, obj_det_imgs = run_obj_dets(img_paths[:max_num_imgs])
-    print(f"DETECTIONS: {obj_dets}")
-    archive_files(img_paths, config['DEFAULT']['OutDir'])
-    #show_images(img_paths[:max_num_imgs])
-    show_images(obj_det_imgs[:max_num_imgs])
+    if config['Darknet']['Enabled']:
+        obj_dets, obj_det_imgs = run_obj_dets(img_paths[:max_num_imgs])
+        print(f"DETECTIONS: {obj_dets}")
+        archive_files(img_paths, config['DEFAULT']['OutDir'])
+        show_images(obj_det_imgs[:max_num_imgs])
+    else:
+        show_images(img_paths[:max_num_imgs])
+        # Probably never happens because of the run loop in show_images
+        archive_files(img_paths, config['DEFAULT']['OutDir'])
 
 if __name__ == "__main__":
     main()
