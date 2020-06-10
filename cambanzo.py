@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import threading
 import time
+import argparse
 import configparser
 import math
 import tkinter
@@ -18,6 +19,7 @@ from PIL import Image, ImageTk
 
 # pylint: disable=invalid-name
 config = configparser.ConfigParser()
+config['Runtime'] = {'Verbose': 'False'}
 
 def matching_files_in(dirs, pat, full_path=True):
     """
@@ -215,8 +217,7 @@ def run_obj_dets(img_paths, verbose=False):
     out_img_paths = []
     od_dets = []
     with chdir(config['Darknet']['Path']):
-        # TODO: Change this to something representing the collective run
-        img_path_basename = basename_no_ext(img_paths[0])
+        img_path_basename = 'obj_det_out_' + timestamp_str() + '_'
         out_img_path = ''.join([config['Darknet']['OutImgFilepathPre'],
                                 '_',
                                 img_path_basename])
@@ -238,26 +239,12 @@ def run_obj_dets(img_paths, verbose=False):
                                  '__' + f'{i:02}' + '.jpg')
     return od_dets, out_img_paths
 
-def main():
+def run_cycle():
     """
-    Most mechanical
+    Run one cycle of acquisition and detection
     """
-    verbose = True
-    archive_only = False
-    if archive_only:
-        config.read('config.ini')
-        img_paths2 = []
-        cam_paths2 = matching_files_in([config['Foggycam']['CapPath']], r'^[A-Fa-f0-9]{32}$')
-        img_paths2.extend(matching_files_in([path + '/images' for path in cam_paths2], r'\.jpg$'))
-        archive_files(img_paths2, config['DEFAULT']['OutDir'])
-        sys.exit(0)
-    args = sys.argv[1:]
-    if len(args) == 1 and (args[0] == '-h' or args[0] == '--help'):
-        print("Usage: {} <config file path>".format(sys.argv[0]))
-        sys.exit(1)
-    config_file = args[0] if len(args) == 1 else 'config.ini'
-    config.read(config_file)
     img_paths = []
+    verbose = config['Runtime']['Verbose']
     if config['Foggycam']['Enabled']:
         fc_runtime_secs = int(config['Foggycam']['DefRuntimeSecs'])
         fc_res = run_for(fc_runtime_secs, ["python", config['Foggycam']['Cmd']])
@@ -283,11 +270,54 @@ def main():
         arch_dir = archive_files(obj_det_imgs, config['DEFAULT']['OutDir'])
         obj_det_imgs = [os.path.join(arch_dir, os.path.basename(p)) for p in
                         obj_det_imgs]
-        show_images(obj_det_imgs[:max_num_imgs])
-    else:
-        show_images(img_paths[:max_num_imgs])
-        # Probably never happens because of the run loop in show_images
-        archive_files(img_paths, config['DEFAULT']['OutDir'])
+        return obj_det_imgs[:max_num_imgs]
+    return img_paths[:max_num_imgs]
+
+def run_archive():
+    """
+    Archive files
+    """
+    img_paths = []
+    cam_paths = matching_files_in([config['Foggycam']['CapPath']], r'^[A-Fa-f0-9]{32}$')
+    img_paths.extend(matching_files_in([path + '/images' for path in cam_paths], r'\.jpg$'))
+    archive_files(img_paths, config['DEFAULT']['OutDir'])
+
+def log(msg, should_print=None):
+    """
+    Print msg if should_print is True or Verbose is specified.
+    """
+    if should_print or (should_print is None and config['Runtime']['Verbose'] == 'True'):
+        print(msg)
+
+def main():
+    """
+    Utmost mechanical
+    """
+    def_conf_file = 'config.ini'
+    arg_p = argparse.ArgumentParser(description='Cambanzo')
+    arg_p.add_argument('--verbose', '-v',
+                       dest='verbose',
+                       default=False,
+                       action='store_true',
+                       help='verbose mode')
+    arg_p.add_argument('--archive', '-a',
+                       dest='archive_only',
+                       action='store_true',
+                       help='archive any existing images and exit')
+    arg_p.add_argument('--config-file', '-c',
+                       dest='config_file',
+                       default=def_conf_file,
+                       help=f'specify a config file to use (defaults to {def_conf_file})')
+    args = arg_p.parse_args()
+    config.read(args.config_file)
+    config['Runtime']['Verbose'] = str(args.verbose)
+    if args.archive_only:
+        log("Archiving...")
+        run_archive()
+        log("Complete.")
+        sys.exit(0)
+    imgs = run_cycle()
+    show_images(imgs)
 
 if __name__ == "__main__":
     main()
