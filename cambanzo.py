@@ -146,47 +146,72 @@ def image_size(img_path):
     img = Image.open(img_path)
     return img.size
 
-# pylint: disable=too-many-locals
-def show_images(img_paths):
+
+class ImageDisplay():
     """
-    Show images with tkinter
+    Show image captures
     """
-    root = tkinter.Tk()
-    root.title('cambanzo')
-    WIN_WIDTH = 1280
-    WIN_HEIGHT = 720
-    # Naively gridding into squares for now
-    num_rows_cols = math.ceil(math.sqrt(len(img_paths)))
-    print(f"grid # of rows and cols = {num_rows_cols}")
-    # Using the dimensions of the first image for sizing
-    orig_w, orig_h = image_size(img_paths[0])
-    print(f"{len(img_paths)} image(s)")
-    print(f"original image w x h = {orig_w} x {orig_h}")
-    img_w = 0
-    img_h = 0
-    if orig_w > orig_h:
-        img_w = int(WIN_WIDTH / num_rows_cols)
-        img_h = int((img_w / orig_w) * orig_h)
-    else:
-        img_h = int(WIN_HEIGHT / num_rows_cols)
-        img_w = int((img_h / orig_h) * orig_w)
-    print(f"resized image w x h  = {img_w} x {img_h}")
-    num_cols = int(WIN_WIDTH / img_w)
-    num_rows = int(WIN_HEIGHT / img_h)
-    print(f"table dimensions     = {num_cols} x {num_rows}")
-    can = tkinter.Canvas(root, width=WIN_WIDTH, height=WIN_HEIGHT)
-    can.pack()
-    imgs = []
-    for i, img_path in enumerate(img_paths):
-        row_num = i // num_rows
-        col_num = i % num_cols
-        img = Image.open(img_path)
-        img = img.resize((img_w, img_h), Image.ANTIALIAS)
-        img_tk = ImageTk.PhotoImage(img)
-        imgs.append(img_tk)
-        can.create_image(img_w * col_num, img_h * row_num, anchor=tkinter.NW,
-                         image=img_tk)
-    root.mainloop()
+    def __init__(self):
+        self.root = tkinter.Tk()
+        self.root.title('cambanzo')
+        self.win_width = 1920.0
+        self.win_height = 1080.0
+        self.can = tkinter.Canvas(self.root,
+                                  width=self.win_width,
+                                  height=self.win_height)
+
+    # pylint: disable=too-many-locals
+    def show_images(self, img_paths):
+        """
+        Show images
+        """
+        # Naively gridding into squares for now
+        num_rows_cols = math.ceil(math.sqrt(len(img_paths)))
+        print(f"grid # of rows and cols = {num_rows_cols}")
+        # Using the dimensions of the first image for sizing
+        orig_w, orig_h = image_size(img_paths[0])
+        print(f"{len(img_paths)} image(s)")
+        print(f"original image w x h = {orig_w} x {orig_h}")
+        img_w = 0
+        img_h = 0
+        if orig_w > orig_h:
+            img_w = int(self.win_width / num_rows_cols)
+            img_h = int((img_w / orig_w) * orig_h)
+        else:
+            img_h = int(self.win_height / num_rows_cols)
+            img_w = int((img_h / orig_h) * orig_w)
+        print(f"resized image w x h  = {img_w} x {img_h}")
+        num_cols = int(self.win_width / img_w)
+        num_rows = int(self.win_height / img_h)
+        print(f"table dimensions     = {num_cols} x {num_rows}")
+        self.can.pack()
+        imgs = []
+        for i, img_path in enumerate(img_paths):
+            row_num = i // num_rows
+            col_num = i % num_cols
+            img = Image.open(img_path)
+            img = img.resize((img_w, img_h), Image.ANTIALIAS)
+            img_tk = ImageTk.PhotoImage(img)
+            imgs.append(img_tk)
+            self.can.create_image(img_w * col_num,
+                                  img_h * row_num,
+                                  anchor=tkinter.NW,
+                                  image=img_tk)
+        self.root.bind("<KeyPress>", self.on_keypress)
+        self.root.mainloop()
+
+    def on_keypress(self, e):
+        """
+        key press handler
+        """
+        print(f"press: [{e.char}]")
+        print(f"event: {e}")
+        if e.char == 'q':
+            self.root.destroy()
+            sys.exit(0)
+        elif e.char == ' ':
+            self.root.destroy()
+
 
 def get_camera_ids(path):
     """
@@ -316,8 +341,10 @@ def main():
         run_archive()
         log("Complete.")
         sys.exit(0)
-    imgs = run_cycle()
-    show_images(imgs)
+    while True:
+        imgs = run_cycle()
+        img_disp = ImageDisplay()
+        img_disp.show_images(imgs)
 
 if __name__ == "__main__":
     main()
