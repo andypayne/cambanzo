@@ -152,6 +152,7 @@ class ImageDisplay():
     Show image captures
     """
     def __init__(self):
+        self.refresh_cb = None
         self.root = tkinter.Tk()
         self.root.title('cambanzo')
         self.win_width = 1920.0
@@ -210,7 +211,15 @@ class ImageDisplay():
             self.root.destroy()
             sys.exit(0)
         elif e.char == ' ':
+            if self.refresh_cb:
+                self.refresh_cb(self)
             self.root.destroy()
+
+    def on_refresh(self, fn):
+        """
+        Refresh
+        """
+        self.refresh_cb = fn
 
 
 def get_camera_ids(path):
@@ -314,6 +323,13 @@ def log(msg, should_print=None):
     if should_print or (should_print is None and config['Runtime']['Verbose'] == 'True'):
         print(msg)
 
+def refresh_imgs(img_disp):
+    """
+    Refresh the images
+    """
+    imgs = run_cycle()
+    img_disp.show_images(imgs)
+
 def main():
     """
     Utmost mechanical
@@ -344,6 +360,7 @@ def main():
     while True:
         imgs = run_cycle()
         img_disp = ImageDisplay()
+        img_disp.on_refresh(refresh_imgs)
         img_disp.show_images(imgs)
 
 if __name__ == "__main__":
